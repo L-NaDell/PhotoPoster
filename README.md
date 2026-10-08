@@ -47,17 +47,37 @@ Every `TODO(PP-xxx)` in the code points to a ticket in the backlog.
 
 ## Running it
 
+**In Visual Studio:** open `PhotoPoster.sln`.
+- Build: **Build → Build Solution** (`Ctrl+Shift+B`)
+- Test: **Test → Run All Tests** (`Ctrl+R, A`). Results show in **Test Explorer**.
+- Run: make sure **PhotoPoster** is the startup project (right-click it → **Set as Startup Project**), then press **F5** to debug or **Ctrl+F5** to run without the debugger. Output appears in the console window that opens.
+
+**Command line** (from the repo root):
+
 ```powershell
 dotnet build
 dotnet test
 dotnet run --project src/PhotoPoster
 ```
 
+Both ways use the `PhotoPoster` profile in `src/PhotoPoster/Properties/launchSettings.json`, which sets `DOTNET_ENVIRONMENT=Development`, so `appsettings.Development.json` and user-secrets are loaded.
+
 For now it logs a tick every 30 seconds. Startup validation fails if `PhotoSource:RootFolder` is empty, so set it in `appsettings.Development.json`. It's already set to a sample path that you should change.
 
 ## Secrets
 
-Never put API keys or tokens in `appsettings*.json`. Use user-secrets locally (the project already has a `UserSecretsId`):
+Never put API keys or tokens in `appsettings*.json`. Use user-secrets locally (the project already has a `UserSecretsId`).
+
+**In Visual Studio:** right-click the **PhotoPoster** project → **Manage User Secrets**. This opens `secrets.json`. Add your values and save:
+
+```json
+{
+  "Caption": { "ApiKey": "<your key>" },
+  "Instagram": { "AccessToken": "<your token>" }
+}
+```
+
+**Command line:**
 
 ```powershell
 cd src/PhotoPoster
