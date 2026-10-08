@@ -9,11 +9,29 @@ The whole project, broken into tickets the way you'd find them on a work board. 
 3. **Optional:** copy the tickets into GitHub Issues or Azure Boards with a Projects board (To do / Doing / Done). Dragging cards is motivating.
 4. **Check off acceptance criteria** here as you go, or close the issue.
 
+### Visual Studio or command line
+
+Tickets give the command-line version because it's short to write down and it's what CI runs. Nearly all of it can be done with clicks in Visual Studio 2026 instead. Tickets that need something extra have an **In Visual Studio** note. This table covers the steps that come up again and again:
+
+| Command line | In Visual Studio |
+|---|---|
+| `dotnet build` | **Build → Build Solution** (`Ctrl+Shift+B`) |
+| `dotnet test` | **Test → Run All Tests** (`Ctrl+R, A`). Results show in **Test Explorer** (`Ctrl+E, T`). |
+| `dotnet run --project src/PhotoPoster` | Make sure **PhotoPoster** is the startup project (right-click it → **Set as Startup Project**), then **F5** (debug) or **Ctrl+F5** (no debugger). Both use the `PhotoPoster` profile in `Properties/launchSettings.json`, which sets `DOTNET_ENVIRONMENT=Development`. |
+| `dotnet run -- <args>` | Add a launch profile with `commandLineArgs` (see PP-306) and pick it from the dropdown next to the green ▶ button |
+| `dotnet add package X` | Right-click the project → **Manage NuGet Packages… → Browse**, search, **Install** |
+| `dotnet user-secrets set "A:B" "value"` | Right-click the **PhotoPoster** project → **Manage User Secrets**. This opens `secrets.json`. Add `{ "A": { "B": "value" } }` (nested) or `{ "A:B": "value" }` (flat). Both work. |
+| `git checkout -b feature/PP-101-...` | **Git → New Branch…**, or click the branch name in the bottom-right status bar → **New Branch** |
+| `git status` / `git add` / `git commit` | **View → Git Changes** (`Ctrl+0, Ctrl+G`). Changed files are listed, then type a message and **Commit All** (or stage single files with **+**). |
+| `git push` | **Push** (↑ arrow) in Git Changes, or **Git → Push** |
+| Open a PR | After pushing a branch, Git Changes shows a **Create a Pull Request** link. **Git → GitHub → New Pull Request** opens the PR form in VS. The github.com page works too. |
+| Edit `.csproj` | Double-click the project in Solution Explorer |
+
 ### Definition of Done (applies to every ticket)
 
 - [ ] Builds with no new warnings
 - [ ] Tests added for any logic (I/O and HTTP wrappers can be thinner)
-- [ ] `dotnet test` passes locally and in CI (once PP-003 is done)
+- [ ] `dotnet test` (or **Test Explorer → Run All**) passes locally and in CI (once PP-003 is done)
 - [ ] No secrets committed
 - [ ] The matching `TODO(PP-xxx)` comments are resolved or removed
 - [ ] Merged to `main` through a PR
@@ -68,6 +86,11 @@ Get the skeleton under version control and onto GitHub.
 
 **Notes:** Make the test folder a *copy* of some photos, not your real library. You'll be pointing buggy code at it.
 
+**In Visual Studio:**
+- Build, test and run: see the table at the top.
+- Push to a new GitHub repo: click **Push** in Git Changes (or **Git → Push**). If the repo has no remote yet, VS opens a **Create a Git repository** dialog. Choose **GitHub**, sign in, set the name, tick **Private**, then **Create and Push**. If a remote already exists, Push just pushes.
+- Branch protection is only on github.com (repo **Settings → Branches**, or **Rules → Rulesets** on newer repos).
+
 ### PP-002 · Configure user-secrets
 **Type:** Task · **Points:** 1 · **Depends on:** PP-001
 
@@ -75,6 +98,14 @@ Get the skeleton under version control and onto GitHub.
 - [ ] Set a dummy `Caption:ApiKey` with `dotnet user-secrets set`
 - [ ] Temporarily log `CaptionOptions.ApiKey.Length` at startup to prove it's read, then remove the log line
 - [ ] Confirm `git status` shows nothing secret
+
+**In Visual Studio:** right-click the **PhotoPoster** project → **Manage User Secrets**. Put this in the `secrets.json` that opens and save:
+```json
+{
+  "Caption": { "ApiKey": "dummy-key-123" }
+}
+```
+Run with F5 to see the length logged. Then open **Git Changes** and check that nothing new is listed (the file is under `%APPDATA%\Microsoft\UserSecrets\`, outside the repo).
 
 **Learn:** the configuration provider order (appsettings → appsettings.{Env} → user-secrets → environment variables → command line). Later sources override earlier ones.
 
@@ -86,6 +117,8 @@ Get the skeleton under version control and onto GitHub.
 - [ ] Uses `actions/setup-dotnet` with `global-json-file: global.json`
 - [ ] Branch protection requires the CI check to pass
 - [ ] CI status badge in README
+
+**In Visual Studio:** create the workflow file in Solution Explorer. Switch to **Folder View** (the Switch Views button at the top of Solution Explorer) so you can see files outside the projects. Right-click the repo root → **Add → New Folder** to make `.github\workflows`, then **Add → New File** for `ci.yml`. You can also make it on github.com: **Actions** tab → search ".NET" → **Configure**, edit it in the browser and commit. Then click **Pull** in VS to get it locally.
 
 **Notes:** This should feel familiar from Azure Pipelines. GitHub Actions YAML is very similar. If you'd rather use Azure Pipelines for nostalgia or résumé reasons, that's equally valid.
 
@@ -148,6 +181,8 @@ As the app, I recognise a photo even if it was renamed or moved, so I never post
 - [ ] Connection string `ConnectionStrings:PhotoPoster` in appsettings (e.g. `Data Source=photoposter.db`), registered with `AddDbContext`
 - [ ] `*.db` added to `.gitignore`
 
+**In Visual Studio:** add both packages with **Manage NuGet Packages** (pick the 10.x versions to match the other `Microsoft.Extensions.*` packages). Also add `Microsoft.EntityFrameworkCore.Tools` now. It gives you the Package Manager Console commands used in PP-202.
+
 **Watch out:** SQLite has limited support for ordering and comparing `DateTimeOffset`. Either store UTC `DateTime` or add a value converter. Look this up before writing the queries in PP-204.
 
 ### PP-202 · First migration, applied on startup
@@ -158,6 +193,13 @@ As the app, I recognise a photo even if it was renamed or moved, so I never post
 - [ ] `dotnet ef migrations add InitialCreate --project src/PhotoPoster` creates `Data/Migrations/`
 - [ ] App applies pending migrations at startup (`db.Database.MigrateAsync()` in a scope before `host.Run()`)
 - [ ] Deleting the .db file and running the app recreates it
+
+**In Visual Studio:** VS has no reliable menu item for creating migrations. The nearest option is the **Package Manager Console**, inside VS, where you type one short command:
+1. Install the `Microsoft.EntityFrameworkCore.Tools` package (see PP-201). You don't need the global `dotnet-ef` tool for this route.
+2. **Tools → NuGet Package Manager → Package Manager Console**
+3. In the console toolbar, set **Default project** to `PhotoPoster`
+4. Type `Add-Migration InitialCreate` and press Enter. `Data/Migrations/` appears in Solution Explorer.
+5. Later schema changes work the same way: `Add-Migration <Name>`. You don't need `Update-Database`, because the app migrates itself on startup.
 
 ### PP-203 · Repository: sync scanned files into the DB
 **Type:** Story · **Points:** 3 · **Depends on:** PP-103, PP-202
@@ -255,6 +297,18 @@ As the developer, I can run `dotnet run -- --dry-run` to caption the next photo 
 
 **Hints:** Check `args` in `Program.cs` and either skip `AddHostedService<Worker>()` or run the pipeline directly after `Build()`. A one-flag check is fine. `System.CommandLine` is overkill for now.
 
+**In Visual Studio:** add a second launch profile so a dry run is a dropdown choice. In `src/PhotoPoster/Properties/launchSettings.json`, add this next to the existing `PhotoPoster` profile:
+```json
+"PhotoPoster (dry run)": {
+  "commandName": "Project",
+  "commandLineArgs": "--dry-run",
+  "environmentVariables": {
+    "DOTNET_ENVIRONMENT": "Development"
+  }
+}
+```
+Pick **PhotoPoster (dry run)** from the dropdown next to the green ▶ button and press F5. Switch back to **PhotoPoster** for the normal worker. You can also edit profiles in **Debug → PhotoPoster Debug Properties**, but the JSON is quicker.
+
 **🎉 Checkpoint:** this is the first "wow, it works" moment. Run it on 20 photos and tune the prompt.
 
 ---
@@ -336,6 +390,8 @@ As the developer, I can run `dotnet run -- --dry-run` to caption the next photo 
 - [ ] Connection string in user-secrets
 - [ ] Manual check: the SAS URL opens in a browser, and after expiry it returns an error
 - [ ] Bonus: develop locally against **Azurite** (the storage emulator). Note that Instagram can't reach Azurite, so the end-to-end test still needs real Azure.
+
+**In Visual Studio / GUI:** create the storage account and container in the Azure portal. Copy the connection string from the storage account's **Security + networking → Access keys** blade and put it in **Manage User Secrets**. Azurite comes with Visual Studio when the Azure development workload is installed (**Tools → Get Tools and Features** if it isn't). Use **Azure Storage Explorer**, a free desktop app, to browse blobs in Azure and Azurite, check uploads and deletes, and make a test SAS URL with right-click → **Get Shared Access Signature**.
 
 ### PP-504 · InstagramPublisher
 **Type:** Story · **Points:** 5 · **Depends on:** PP-501, PP-502, PP-503
@@ -440,6 +496,14 @@ Options, in rough order of effort:
 - [ ] Secrets provided via environment variables or the protected store from PP-506, because user-secrets only load in Development
 - [ ] SQLite DB and log paths are absolute, under e.g. `%ProgramData%\PhotoPoster\`, not the working directory (services start in `System32`)
 
+**In Visual Studio / GUI:**
+- **Publish:** right-click the **PhotoPoster** project → **Publish… → Folder**, and choose a target folder (e.g. `C:\Services\PhotoPoster`). In the profile's **Show all settings**, set Configuration = Release, Target runtime = `win-x64`, and Deployment mode = Framework-dependent (or Self-contained if you don't want to depend on the .NET runtime being installed). Then click **Publish**. The profile is saved, so next time it's one click.
+- **Creating the service:** Windows has no GUI for creating a service. Run one command in an **admin** terminal:
+  `sc.exe create PhotoPoster binPath= "C:\Services\PhotoPoster\PhotoPoster.exe" start= auto`
+  (The space after `binPath=` and `start=` is required. That's just how `sc.exe` parses arguments.)
+- **Everything after that is GUI:** open **Services** (`Win+R` → `services.msc`) → **PhotoPoster**. Start and stop it there. Set it to **Automatic (Delayed Start)** on the General tab. The **Recovery** tab sets restart-on-failure. Use **Log On** if it needs to run as your user to reach the photos folder.
+- **Environment variables for secrets:** Windows only lets you set per-service environment variables in the registry. Either use **System Properties → Environment Variables → System variables** (the service sees these after a restart), or the protected store from PP-506.
+
 ### PP-704 · Switch to the real account
 **Type:** Task · **Points:** 1 · **Depends on:** PP-507, PP-703
 
@@ -455,6 +519,8 @@ Options, in rough order of effort:
 - [ ] README rewritten for a stranger: what it does, a screenshot of the approval page, an architecture diagram, how to run, and the design decisions (link `docs/decisions/`)
 - [ ] Test coverage report in CI (coverlet is already referenced)
 - [ ] Repo made public (after a final secrets scan of the **full git history**, e.g. with `gitleaks`)
+
+**In Visual Studio / GUI:** `gitleaks` only runs from the command line (`gitleaks git` in the repo folder, one command). GitHub's own **secret scanning** turns on by itself once the repo is public, as a second net. Change the repo to public on github.com: **Settings → General → Danger Zone → Change visibility**.
 
 ---
 
